@@ -1,0 +1,14 @@
+@CHARSET "utf-8";
+
+.date-sunday   .ui-state-default {
+  background-image: none; background-color: #FF9999
+}
+.date-saturday .ui-state-default {
+  background-image: none; background-color: #66CCFF
+}
+.date-holiday0 .ui-state-default {
+  background-image: none; background-color: #FF99FF
+}
+.date-holiday1 .ui-state-default {
+  background-image: none; background-color: #FFFF33
+}
