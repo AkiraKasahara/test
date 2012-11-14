@@ -1,5 +1,8 @@
+
+
 <?php
 //============初期設定============
+//save
 $last_year = 2037;
 $wday_color = "#000000"; //平日の文字色は黒
 $sat_color = "#0000ff"; //土曜日の文字色は青
@@ -16,13 +19,6 @@ if(!isset($action)){
         $action = $_POST['action'];
     }
 }
-if(!isset($code)){
-    if($_GET['code']){
-        $code = $_GET['code'];
-    }else{
-        $code = $_POST['code'];
-    }
-}
 if(!isset($year)){
     if($_GET['year']){
         $year = $_GET['year'];
@@ -37,11 +33,19 @@ if(!isset($month)){
         $month = $_POST['month'];
     }
 }
+if(!isset($select_date)){
+    if($_GET['select_date']){
+        $select_date = $_GET['select_date'];
+    }
+
+
+}
 if(!isset($day)){ $day = $_GET['day']; }
 if(!isset($ayear)){ $ayear = $_POST['ayear']; }
 if(!isset($amonth)){ $amonth = $_POST['amonth']; }
 if(!isset($aday)){ $aday = $_POST['aday']; }
 if(!isset($date)){ $date = $_POST['date']; }
+if(!isset($schedule)){ $schedule = $_POST['schedule']; }
 if(!isset($comment)){ $comment = $_POST['comment']; }
 if(!isset($c_color)){ $c_color = $_POST['c_color']; }
 //エスケープ記号対策
@@ -70,107 +74,87 @@ if($month == 1){
 }
 //変数$dayがセットされていなければ当日
 $day = (!isset($day)) ? date("j") : $day;
-$today = date("Y/n/j"); //今日の日付データ
+$today = date("Y-n-j"); //今日の日付データ
 $data_max = 100; //データ最大記録数
 $data_file = './log.dat';
 $horiday_file = './horiday.dat'; //休日用ファイル
 $passwd = '777'; //管理者用パスワード
 //書き込み処理
-if($action == 'regist'){
-    if($comment){
+if($action == 'regist')
+{
+    if($comment)
+    {
         //ここから書き込みデータの調整
-        $date = $ayear . "/" . $amonth . "/" . $aday;
-        $code = time(); //現在の秒数をゲット
-
+        $date = $ayear . "-" . $amonth . "-" . $aday;
         //サンプル 特殊記号の変換
 		//htmlspecialchars("<a href=\"test\">test</a>)→<a href="test">test</a>
         $comment = htmlspecialchars($comment);
 
         //サンプル 改行文字の前にHTMLの改行タグを挿入する
         //string nl2br( string string )
-        $comment = nl2br($comment);
+        //$comment = nl2br($comment);
 
         //サンプル 文字列の置き換え
         //str_replace ("検索文字列", "置換え文字列", "対象文字列");
         $comment = str_replace("\r", "", $comment);
         $comment = str_replace("\n", "", $comment);
         //ログファイルの区切文字(",")と区別するために文字コード(&#44)に書き換える。
-        $comment = str_replace(",", "&#44;",$comment);
+        //$comment = str_replace(",", "&#44;",$comment);
         //日付の重複をチェック
-        $message = file($data_file);
+        //$message = file($data_file);
+
         $chk_flag = 0;
-        for($i = 0; $i <= count($message); $i++){
 
-        	//サンプル list
-        	//$info = array('コーヒー', '茶色', 'カフェイン');
-        	//list($drink, $color, $power) = $info;
-            list($ccode,$cdate,$cc_color,$ccomment) = split( ",", $message[$i]);
-            if($date == $cdate){
-                $chk_flag++;
-                break;
-            }
+        mysql_connect("105-pc", "root", "");
+        mysql_select_db("sample");
+        mysql_query("SET NAMES UTF8");
+
+        $message1 = "select * from schedule where date = '$date'";
+        $message = mysql_query($message1);
+        $chk_flag = mysql_num_rows($message);
+        if($chk_flag < 1)
+        {
+
+        	unset($message1);
+        	$message1 = "insert into schedule values('$date','$schedule','$comment','$c_color')";
+        	mysql_query($message1);
+
+
         }
+	}
         unset($message);
-
-        //ログファイルに書き込み
-        if($chk_flag < 1){
-            $message = file($data_file);
-            //配列要素を文字列により連結
-            $input_msg = implode(",", array($code,$date,$c_color,$comment));
-            $fp = fopen($data_file, "w");
-            rewind($fp);
-            fputs($fp, "$input_msg\n");
-            //最大記録数の調整
-            if($data_max <= count($message)){
-                $msg_num = $data_max - 1;
-            }else{
-                $msg_num = count($message);
-            }
-            for($i = 0; $i < $msg_num; $i++){
-                fputs($fp, $message[$i]);
-            }
-            fclose($fp);
-            unset($message);
-        }
-    }
+}
 //アップデート処理
-}elseif($action == 'update'){
-    $comment = str_replace(" ", "", $comment);
-    $comment = str_replace("　", "", $comment);
-    if($comment){
-        $repdata = file($data_file);
-        $fp = fopen($data_file, "w");
-        for($i=0; $i<count($repdata); $i++){
-            list($rcode,$rdate,$rc_color,$rcomment) = split( ",", $repdata[$i]);
-            if ($date == $rdate) {
-                $comment = htmlspecialchars($comment);
-                $comment = nl2br($comment);
-                $comment = str_replace("\r", "", $comment);
-                $comment = str_replace("\n", "", $comment);
-                $repdata[$i] = "$code,$date,$c_color,$comment\n";
-                fputs($fp, $repdata[$i]);
-            } else {
-                fputs($fp, $repdata[$i]);
-            }
-        }
-        fclose($fp);
-    }
+elseif($action == 'update'){
+	    if($comment)
+		{
+			mysql_connect("105-pc", "root", "");
+	        mysql_select_db("sample");
+	        mysql_query("SET NAMES UTF8");
+
+			$message = "UPDATE schedule SET schedule='$schedule',comment='$comment',color='$c_color' WHERE date='$date'";
+	        mysql_query($message);
+		}
+
 //記事削除処理
 }elseif($action == 'delete'){
-    $deldata = file($data_file);
-    $fp = fopen($data_file, "w");
-    for($i=0; $i<count($deldata); $i++){
-        list($dcode,$ddate,$dc_color,$dcomment) = split(",", $deldata[$i]);
-        if ($code != $dcode) {
-            fputs($fp, $deldata[$i]);
-        }
-    }
-    fclose($fp);
+
+		mysql_connect("105-pc", "root", "");
+        mysql_select_db("sample");
+        mysql_query("SET NAMES UTF8");
+
+		$message = "delete  from schedule where date='$select_date'";
+        mysql_query($message);
 }
 ?>
 
 <HTML>
 <HEAD>
+	<script src="../jquery-1.8.2.min.js"></script>
+	<script src="jquery.tipTip.js"></script>
+	<script src="jquery.tipTip.minified.js"></script>
+	<link href="tipTip.css" rel="stylesheet" type="text/css" />
+
     <META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=utf-8">
     <TITLE>スケジュール管理</TITLE>
     <STYLE TYPE="text/css">
@@ -195,6 +179,14 @@ if($action == 'regist'){
     </STYLE>
 </HEAD>
 <BODY>
+<script>
+	$( function(){
+		// ホバーで表示させたい場合
+		//$( '.tip' ).tipTip({defaultPosition: "right"});
+		// クリックで表示させたい場合
+		$( '.tip' ).tipTip({ activation: 'click' });
+	});
+</script>
 <P>
 <TABLE BORDER="0">
     <TR>
@@ -256,6 +248,7 @@ if(($date_of_month % 7 > 7 - $day_of_first) || ($date_of_month % 7 == 0 && $day_
 }
 //カレンダーを出力
 for($i = 1; $i <= $week_of_month * 7; $i++){
+
     if($i % 7 == 1){
         echo "<tr>";
     }
@@ -271,7 +264,7 @@ for($i = 1; $i <= $week_of_month * 7; $i++){
         }
         //日付を整形
         $day_num = $i - $day_of_first;
-        $date_str = $year . "/" . $month . "/" . $day_num;
+        $date_str = $year . "-" . $month . "-" . $day_num;
 
         if ($day_num > 0 && $day_num < 10)
         {
@@ -282,36 +275,19 @@ for($i = 1; $i <= $week_of_month * 7; $i++){
         	$day_num2 = $day_num;
         }
         $date_str2 = $year . "-" . $month . "-" . $day_num2;
-
-        //今日の日付は色を代える
         if($date_str == $today){
             echo "<td width=70 height=70 valign=top bgcolor=$reg_color>";
         }else{
             echo "<td width=70 height=70 valign=top>";
         }
 
-        //ログデータを抽出
-        $message = file($data_file);
-        $today_flag = 0;
-        for($j=0; $j<count($message); $j++){
-            list($icode,$idate,$ic_color,$icomment) = split( ",", $message[$j]);
-            if($date_str == $idate){
-                $today_flag++;
-                $today_comment = $icomment;
-                $today_comment = str_replace("<br />", "\n", $today_comment);
-                $today_comment = chop($today_comment);
-                $today_code = $icode;
-                $c_color = $ic_color;
-                break;
-            }
-        }
-        unset($message);
+
         //祭日データを抽出
 
-        mysql_connect("localhost", "root", "");
+        mysql_connect("105-pc", "root", "");
         mysql_select_db("sample");
 
-        mysql_query("SET NAMES sjis");
+        mysql_query("SET NAMES utf8");
 
         $message1 = "select * from calendar";
         $message = mysql_query($message1);
@@ -333,26 +309,30 @@ for($i = 1; $i <= $week_of_month * 7; $i++){
         }
         unset($message);
 
-        //ログデータ「ＤＢ番」
-        mysql_connect("localhost", "root", "");
+        //コメントデータを抽出
+        mysql_connect("105-pc", "root", "");
         mysql_select_db("sample");
 
-        mysql_query("SET NAMES sjis");
+        mysql_query("SET NAMES UTF8");
 
-        $message1 = "select * from Comment";
+        $message1 = "select * from schedule";
         $message = mysql_query($message1);
 		$count = mysql_num_rows($message);
+
+		$today_flag = 0;
+
         for($j=0; $j<$count; $j++){
         	$gyo = mysql_fetch_array($message);
         	$idate = $gyo['date'];
+        	$ischedule =$gyo['schedule'];
             $icomment = $gyo['comment'];
             $ic_color = $gyo['color'];
             if($date_str == $idate){
+
                 $today_flag++;
-                $today_comment = $icomment;
-                $today_comment = str_replace("<br />", "\n", $today_comment);
+                $schedule = $ischedule;
+                $today_comment = str_replace("<br />", "\n", $icomment);
                 $today_comment = chop($today_comment);
-                $today_code = $icode;
                 $c_color = $ic_color;
                 break;
             }
@@ -363,13 +343,13 @@ for($i = 1; $i <= $week_of_month * 7; $i++){
         if($h_flag){ $color = $sun_color; }
         echo "<font size=5 color=" . $color . ">$day_num</font>";
         if($today_flag){
-            echo "　<a href=$PHP_SELF?action=edit&code=$today_code&year=$year&month=$month onMouseOver=this.style.color='red' onMouseOut=this.style.color='blue'><FONT SIZE=2>編集</FONT></a>";
+            echo "　<a href=$PHP_SELF?action=edit&select_date=$idate onMouseOver=this.style.color='red' onMouseOut=this.style.color='blue'><FONT SIZE=2>編集</FONT></a>";
         }
         if($h_flag){
             echo "<br><font size=2 color='red'>" . $h_name . "</font>";
         }
         if($today_flag){
-            echo "<br><font color=" . $c_color . ">" . $today_comment . "</font>";
+            echo "<br><font class='tip' title='$today_comment' color=" . $c_color . ">" . $schedule . "</font>";
         }
         echo "</td>";
     }
@@ -404,41 +384,55 @@ if($action == 'add'){
     }
     echo "</select>日\n";
     echo "</td></tr>\n";
+    echo "<tr><td><B>予定：";
+    echo "<tr><td><textarea name=schedule rows=1 cols=10></textarea></td></tr>\n";
+	echo "<tr><td><B>予定の文字色：</B></td></tr>\n";
+	echo "<tr><td><INPUT TYPE=RADIO NAME=c_color VALUE=black checked><B><FONT COLOR='black'>黒</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=blue><B><FONT COLOR='blue'>青</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=red><B><FONT COLOR='red'>赤</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=green><B><FONT COLOR='green'>緑</FONT></B></td></tr>\n";
     echo "<tr><td><B>コメント：</B></td></tr>\n";
     echo "<tr><td><textarea name=comment rows=3 cols=15></textarea></td></tr>\n";
-    echo "<tr><td><B>コメント文字色：</B></td></tr>\n";
-    echo "<tr><td><INPUT TYPE=RADIO NAME=c_color VALUE=black checked><B><FONT COLOR='black'>黒</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=blue><B><FONT COLOR='blue'>青</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=red><B><FONT COLOR='red'>赤</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=green><B><FONT COLOR='green'>緑</FONT></B></td></tr>\n";
     echo "<tr><td><input type=submit value=登録/更新></td></tr>\n";
     echo "</table></form>\n";
     echo "お好きな日にちにコメントを<BR>登録できます。<BR><FONT SIZE=2 COLOR='red'>※コメントがなければ記事は登録<BR>されません。</FONT>\n";
 }elseif($action == 'edit'){
-    $message = file($data_file);
-    for($i = 0; $i <= count($message); $i++){
-        list($ecode,$edate,$ec_color,$ecomment) = split( ",", $message[$i]);
-        if($code == $ecode){
-            $code = $ecode;
-            $date = $edate;
-            $c_color = $ec_color;
-            $comment = str_replace("<br />", "\n", $ecomment);
-            $comment = chop($comment);
-            break;
-        }
-    }
+
+	mysql_connect("105-pc", "root", "");
+	mysql_select_db("sample");
+
+	mysql_query("SET NAMES UTF8");
+
+	$message1 = "select * from schedule";
+	$message = mysql_query($message1);
+	$count = mysql_num_rows($message);
+ 	for($j=0; $j<$count; $j++){
+	 	$gyo = mysql_fetch_array($message);
+	 	$idate = $gyo['date'];
+	 	$ischedule = $gyo['schedule'];
+	  	$icomment = $gyo['comment'];
+	  	$ic_color = $gyo['color'];
+		if($select_date == $idate){
+			$date = $select_date;
+			$schedule = $ischedule;
+			$comment = $icomment;
+			$c_color = $ic_color;
+			break;
+ 		}
+	}
     unset($message);
     echo "<form action=$PHP_SELF method=POST>\n";
     echo "<input type=hidden name=action value=update>\n";
-    echo "<input type=hidden name=code value=$code>\n";
     echo "<input type=hidden name=year value=$year>\n";
     echo "<input type=hidden name=month value=$month>\n";
     echo "<table border=0>\n";
     echo "<tr><td><B>日付：</B>$date</td></tr>\n";
     echo "<input type=hidden name=date value=\"$date\">\n";
+    echo "<tr><td><B>予定：";
+    echo "<tr><td><textarea name=schedule rows=1 cols=10>$schedule</textarea></td></tr>\n";
+    echo "<tr><td><B>予定の文字色：</B></td></tr>\n";
+	echo "<tr><td><INPUT TYPE=RADIO NAME=c_color VALUE=black" . (($c_color == 'black') ? ' checked' : '') . "><B><FONT COLOR='black'>黒</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=blue" . (($c_color == 'blue') ? ' checked' : '') . "><B><FONT COLOR='blue'>青</FONT></B>　<INPUT TYPE=RADIO NAME=ec_color VALUE=red" . (($c_color == 'red') ? ' checked' : '') . "><B><FONT COLOR='red'>赤</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=green" . (($c_color == 'green') ? ' checked' : '') . "><B><FONT COLOR='green'>緑</FONT></B></td></tr>\n";
     echo "<tr><td><B>コメント：</B></td></tr>\n";
     echo "<tr><td><textarea name=comment rows=3 cols=15>$comment</textarea></td></tr>\n";
-    echo "<tr><td><B>コメント文字色：</B></td></tr>\n";
-    echo "<tr><td><INPUT TYPE=RADIO NAME=c_color VALUE=black" . (($c_color == 'black') ? ' checked' : '') . "><B><FONT COLOR='black'>黒</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=blue" . (($c_color == 'blue') ? ' checked' : '') . "><B><FONT COLOR='blue'>青</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=red" . (($c_color == 'red') ? ' checked' : '') . "><B><FONT COLOR='red'>赤</FONT></B>　<INPUT TYPE=RADIO NAME=c_color VALUE=green" . (($c_color == 'green') ? ' checked' : '') . "><B><FONT COLOR='green'>緑</FONT></B></td></tr>\n";
     echo "<tr><td><input type=submit value=修正/更新></td></tr>\n";
-    echo "<tr><td><a href=$PHP_SELF?action=delete&code=" . $code . "&year=$year&month=$month onMouseOver=this.style.color='red' onMouseOut=this.style.color='blue'>この記事を削除</a>　<a href=$PHP_SELF?action=add onMouseOver=this.style.color='red' onMouseOut=this.style.color='blue'>新規登録</a></td></tr>\n";
+    echo "<tr><td><a href=$PHP_SELF?action=delete&select_date=$date onMouseOver=this.style.color='red' onMouseOut=this.style.color='blue'>この記事を削除</a>　<a href=$PHP_SELF?action=add onMouseOver=this.style.color='red' onMouseOut=this.style.color='blue'>新規登録</a></td></tr>\n";
     echo "</table></form>\n";
 }else{
     echo "■<a href=$PHP_SELF?action=add onMouseOver=this.style.color='red' onMouseOut=this.style.color='blue'>新規登録</a>\n";

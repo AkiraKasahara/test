@@ -12,15 +12,31 @@ $(document).ready(function() {
 
 </head>
 <body>
+<form action="sample2.php" method="POST">
 	<table class="table_03">
+	<tr>
+		<td>列</td>
+		<td>
+			<select name="row"	>
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+
+			</select>
+		</td>
+	</tr>
 		<tr>
-		<th>SAMPLE03</th>
-		<td>セル間隔を開けずに、1pxのラインで囲ったテーブルです。一番シンプルでキレイかも。</td>
-		</tr>
-		<tr>
-		<th>項目とか</th>
-		<td>テキストとか。</td>
-		</tr>
+		<td>行</td>
+		<td>
+			<select name="col"	>
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+
+			</select>
+		</td>
+	</tr>
 	</table>
+</form>
 </body>
 </html>
